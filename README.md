@@ -5,5 +5,7 @@ Adafruit sensor calibration causes errors with RP2040 MCUs. The problem is with 
 * Currently the calibration is saved into sensor_calib.json file (even if any other file name is provided through parameters).
 * Make sure LittleFS library is installed.
 
-  # ToDo:
-  * Check with ESP devices to make sure they use the SDFat instead of simulated EEPROM.
+# ToDo:
+* Check with ESP devices to make sure they use the SDFat instead of simulated EEPROM.
+* Revise the overall code to discard any unused libs.
+* Cross-check the return types and error handling.
