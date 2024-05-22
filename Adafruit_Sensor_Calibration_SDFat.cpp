@@ -1,5 +1,5 @@
 #include "Adafruit_Sensor_Calibration.h"
-
+#include <LittleFS.h>
 #if defined(ADAFRUIT_SENSOR_CALIBRATION_USE_SDFAT)
 
 #ifdef ADAFRUIT_SENSOR_CALIBRATION_USE_FLASH
@@ -30,52 +30,16 @@ Adafruit_Sensor_Calibration_SDFat::Adafruit_Sensor_Calibration_SDFat() {}
 /**************************************************************************/
 bool Adafruit_Sensor_Calibration_SDFat::begin(const char *filename,
                                               FatFileSystem *filesys) {
-  if (filesys) {
-    theFS = filesys;
-  } else {
-#ifdef ADAFRUIT_SENSOR_CALIBRATION_USE_FLASH
-    if (!flash.begin()) {
-      return false;
-    }
-    Serial.print("JEDEC ID: ");
-    Serial.println(flash.getJEDECID(), HEX);
-    Serial.print("Flash size: ");
-    Serial.println(flash.size());
+  // Initialize the filesystem with LittleFS LittleFS.begin();
+  LittleFS.begin();
 
-    if (!fatfs.begin(&flash)) {
-      Serial.println("Error, failed to mount newly formatted filesystem!");
-      Serial.println("Was it formatted with the fatfs_format example?");
-      return false;
-    }
-    theFS = &fatfs;
-#else
-    return false;
-#endif
-  }
 
   Serial.println("Mounted filesystem!");
 
-  File root;
+  //File root = LittleFS.open("sensor_calib.json");
   char file[80];
-  root = theFS->open("/");
-  while (1) {
-    File entry = root.openNextFile();
-    if (!entry) {
-      break; // no more files
-    }
-    entry.getName(file, 80);
-    Serial.print("\t");
-    Serial.print(file);
-    if (entry.isDirectory()) {
-      Serial.println("/");
-    } else {
-      // files have sizes, directories do not
-      Serial.print(" : ");
-      Serial.print(entry.size(), DEC);
-      Serial.println(" bytes");
-    }
-    entry.close();
-  }
+  
+
 
   if (filename) {
     _cal_filename = filename;
@@ -93,10 +57,10 @@ bool Adafruit_Sensor_Calibration_SDFat::begin(const char *filename,
 */
 /**************************************************************************/
 bool Adafruit_Sensor_Calibration_SDFat::saveCalibration(void) {
-  if (!theFS)
-    return false;
+  // if (!theFS)
+  //   return false;
 
-  File file = theFS->open(_cal_filename, O_WRITE | O_CREAT | O_TRUNC);
+  File file = LittleFS.open("sensor_calib.json", "w");
   if (!file) {
     Serial.println(F("Failed to create file"));
     return false;
@@ -122,11 +86,12 @@ bool Adafruit_Sensor_Calibration_SDFat::saveCalibration(void) {
   }
   // serializeJsonPretty(root, Serial);
 
-  // Serialize JSON to file
-  if (serializeJson(calibJSON, file) == 0) {
-    Serial.println(F("Failed to write to file"));
-    return false;
-  }
+  // Serialize JSON to a buffer
+  char buffer[1024];
+  size_t n = serializeJsonPretty(root, buffer);
+  file.write((const uint8_t *)buffer, n);
+
+  
   // Close the file (File's destructor doesn't close the file)
   file.close();
 
@@ -140,9 +105,8 @@ bool Adafruit_Sensor_Calibration_SDFat::saveCalibration(void) {
 */
 /**************************************************************************/
 bool Adafruit_Sensor_Calibration_SDFat::printSavedCalibration(void) {
-  if (!theFS)
-    return false;
-  File file = theFS->open(_cal_filename, O_READ);
+  
+  File file = LittleFS.open("sensor_calib.json", "r");
   if (!file) {
     Serial.println(F("Failed to read file"));
     return false;
@@ -165,10 +129,8 @@ bool Adafruit_Sensor_Calibration_SDFat::printSavedCalibration(void) {
 */
 /**************************************************************************/
 bool Adafruit_Sensor_Calibration_SDFat::loadCalibration(void) {
-  if (!theFS)
-    return false;
 
-  File file = theFS->open(_cal_filename, O_READ);
+  File file = LittleFS.open("sensor_calib.json", "r");
   if (!file) {
     Serial.println(F("Failed to read file"));
     return false;
